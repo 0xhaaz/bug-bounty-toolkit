@@ -18,7 +18,6 @@ import subprocess
 import sys
 import textwrap
 from datetime import datetime, timedelta
-from pathlib import Path
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SESSIONS_DIR = os.path.join(_REPO, "sessions")
@@ -77,9 +76,6 @@ def _fetch_disclosed_reports(target: str) -> str:
 def cmd_start(args: argparse.Namespace) -> int:
     """Create or open a session file for today."""
     target = args.target
-    if not target:
-        print("Error: --target is required")
-        return 1
 
     # Check if already exists
     existing = _find_today_session(target)
@@ -126,7 +122,7 @@ def cmd_note(args: argparse.Namespace) -> int:
         os.makedirs(SESSIONS_DIR, exist_ok=True)
         session = os.path.join(SESSIONS_DIR, f"{_today()}-unsorted.md")
         with open(session, "w") as f:
-            f.write(f"# Session: {_today()} — unsorted\n\n## Hunt Log\n\n")
+            f.write(f"# Session: {_today()} — unsorted\n\n## Hunt Log\n\n## Lessons Learned\n\n")
         print(f"Created new session: {session}")
 
     timestamp = _now()

@@ -36,3 +36,6 @@ venv/
 nmap-output/
 .atlas/
 .forge/
+
+# Session journal (personal practice notes)
+sessions/

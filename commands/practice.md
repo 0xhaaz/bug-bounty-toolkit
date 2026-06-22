@@ -1,5 +1,5 @@
 ---
-description: Session journal for bug bounty hunting. Log what you test, on which target, and what you learn. Usage: /practice start --target robinhood
+description: Session journal for bug bounty hunting. Wraps tools/practice.py. Log what you test, on which target, and what you learn. Usage: /practice start --target robinhood
 ---
 
 # /practice
@@ -38,6 +38,10 @@ Aggregates recent session files. Shows what you tested per target and lessons le
 2. During hunt: `/practice note "tested X — result"` after each endpoint
 3. Before next session: `/practice review` to see what's been tested
 4. After finding something: `/remember` (existing command) to save to pattern_db
+
+## Implementation
+
+All commands delegate to `tools/practice.py`. Session files are stored as plain markdown in `sessions/`.
 
 ## Why
 

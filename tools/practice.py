@@ -14,6 +14,7 @@ Usage:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import textwrap
@@ -76,6 +77,10 @@ def _fetch_disclosed_reports(target: str) -> str:
 def cmd_start(args: argparse.Namespace) -> int:
     """Create or open a session file for today."""
     target = args.target
+
+    if not re.match(r'^[a-zA-Z0-9._-]+$', target):
+        print("Error: target must be alphanumeric, dots, dashes, or underscores only")
+        return 1
 
     # Check if already exists
     existing = _find_today_session(target)

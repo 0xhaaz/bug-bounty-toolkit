@@ -131,6 +131,41 @@ Install for another harness:
 ./install.sh --agent pi --project       # local .pi/ install
 ```
 
+## Local Additions
+
+Custom tools and config added for this fork:
+
+| Addition | Location | Purpose |
+|---|---|---|
+| `/practice` | `commands/practice.md` | Session journal — log what you test each session |
+| `practice.py` | `tools/practice.py` | CLI backing the practice command |
+| `daily-update.sh` | `scripts/daily-update.sh` | Daily cron at 6 AM — fetches targets, commits changes |
+| Practice journal | `sessions/` | Markdown session files (gitignored) |
+| H1 MCP enrichment | `tools/target_selector.py` | `--no-enrich` flag + real bounty data via MCP |
+
+### Workflow
+
+1. `python3 tools/target_selector.py --top 15` — pick a target (enriched with real bounties)
+2. `/practice start --target <handle>` — start session, fetch intel
+3. Read program policy on HackerOne
+4. `/intel <target>` — CVE + disclosure intel
+5. Passive recon (subfinder, gau, waybackurls)
+6. Hunt (5-min rotation)
+7. `/practice note "tested X — result"` — log each endpoint
+8. `/remember` — save successful techniques to pattern_db
+9. `/practice review --days 7` — weekly retrospective
+
+### Best ROI Targets (June 2026)
+
+- **Robinhood** — $966 avg bounty, 139 resolved, lightly hunted
+- **M-Pesa** — fintech, 0 resolved, virgin territory
+- **Unico IDtech** — $500 avg bounty, 23 resolved
+
+### Daily Updates
+
+Cron runs at 6 AM: `crontab -l` to view, `crontab -e` to edit.
+Log at `sessions/daily-update.log`.
+
 ## Critical Rules (Always Active)
 
 1. READ FULL SCOPE before touching any asset

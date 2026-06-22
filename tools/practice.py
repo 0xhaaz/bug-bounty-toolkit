@@ -38,15 +38,16 @@ def _find_today_session(target: str = "") -> str | None:
     prefix = _today()
     if not os.path.isdir(SESSIONS_DIR):
         return None
-    for f in sorted(os.listdir(SESSIONS_DIR), reverse=True):
-        if not f.endswith(".md"):
-            continue
-        if not f.startswith(prefix):
+    candidates = []
+    for f in os.listdir(SESSIONS_DIR):
+        if not f.endswith(".md") or not f.startswith(prefix):
             continue
         if target and target not in f:
             continue
-        return os.path.join(SESSIONS_DIR, f)
-    return None
+        candidates.append(os.path.join(SESSIONS_DIR, f))
+    if not candidates:
+        return None
+    return max(candidates, key=os.path.getmtime)
 
 
 def _fetch_disclosed_reports(target: str) -> str:
@@ -121,7 +122,7 @@ def cmd_note(args: argparse.Namespace) -> int:
         print("Error: message is required")
         return 1
 
-    session = _find_today_session()
+    session = _find_today_session(target=args.target)
     if not session:
         # Create an unsorted session
         os.makedirs(SESSIONS_DIR, exist_ok=True)
@@ -228,6 +229,7 @@ def main():
     # note
     p_note = sub.add_parser("note", help="Log a note to today's session")
     p_note.add_argument("message", type=str, help="What you tested or found")
+    p_note.add_argument("--target", "-t", type=str, default="", help="Target handle (default: most recent session)")
     p_note.set_defaults(func=cmd_note)
 
     # review

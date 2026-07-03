@@ -21,6 +21,7 @@ Usage (standalone test):
     python3 h1_hacker_api.py balance
     python3 h1_hacker_api.py earnings
     python3 h1_hacker_api.py payouts
+    python3 h1_hacker_api.py hacktivity <keyword> [--program <handle>] [--limit N]
     python3 h1_hacker_api.py whoami       # cheap auth probe (lists 1 program)
 """
 
@@ -47,6 +48,9 @@ except ImportError:
 API_BASE = "https://api.hackerone.com/v1/hackers"
 DEFAULT_TIMEOUT = 20
 MAX_RETRIES = 3
+# Hacktivity has no server-side program filter, so a program-restricted search
+# scans this many pages (100 items each) of recent disclosures client-side.
+PROGRAM_SCAN_PAGES = 5
 USER_AGENT = "claude-bug-bounty/2.1 (+h1-hacker-api)"
 
 CREDS_FILE = Path.home() / ".hackerone" / "creds.json"
@@ -269,6 +273,62 @@ def get_payouts(max_items: int = 50) -> list[dict]:
     return _paginate("/payments/payouts", max_items=max_items)
 
 
+def search_hacktivity(keyword: str = "", program: str = "", limit: int = 10) -> list[dict]:
+    """Search HackerOne Hacktivity (publicly disclosed reports) via the REST API.
+
+    Replaces the old public GraphQL query, which HackerOne broke by removing the
+    `hacktivity_items` root field. Uses the authenticated endpoint
+    GET /v1/hackers/hacktivity, so it requires API credentials.
+
+    Args:
+        keyword: freetext search (vuln type, tech), matched server-side.
+        program: restrict to a program handle. Hacktivity has no program filter,
+                 so this is applied client-side across up to PROGRAM_SCAN_PAGES
+                 pages of recent disclosures — best-effort for sparsely-disclosing
+                 programs.
+        limit: max results (1-25).
+    """
+    limit = max(1, min(25, limit))
+    params = {"page[size]": 100, "sort": "-latest_disclosable_activity_at"}
+    if keyword:
+        params["queryString"] = keyword
+
+    want = program.strip().lower()
+    max_pages = PROGRAM_SCAN_PAGES if want else 1
+    results = []
+    for page in range(1, max_pages + 1):
+        params["page[number]"] = page
+        resp = _request("GET", "/hacktivity", params=params)
+        nodes = resp.get("data", [])
+        if not nodes:
+            break
+        for node in nodes:
+            attrs = node.get("attributes") or {}
+            pdata = ((node.get("relationships") or {}).get("program") or {}).get("data") or {}
+            pattrs = pdata.get("attributes") or {}
+            handle = pattrs.get("handle") or ""
+            if want and handle.lower() != want:
+                continue
+            results.append({
+                "title": attrs.get("title") or "",
+                "severity": (attrs.get("severity_rating") or "unknown").upper(),
+                "disclosed_at": (attrs.get("disclosed_at") or "")[:10],
+                "url": attrs.get("url") or "",
+                "state": attrs.get("substate") or "",
+                "program": handle,
+                "program_name": pattrs.get("name") or "",
+                "awarded": attrs.get("total_awarded_amount"),
+                "cwe": attrs.get("cwe"),
+                "cve_ids": attrs.get("cve_ids") or [],
+                "votes": attrs.get("votes"),
+            })
+            if len(results) >= limit:
+                return results
+        # /hacktivity returns an empty `links` object (no `next`), so pagination
+        # is bounded by max_pages and the empty-data break above, not by links.
+    return results
+
+
 def submit_report(team_handle: str, title: str, vulnerability_information: str,
                   impact: str, severity_rating: str = None,
                   weakness_id: int = None, structured_scope_id: str = None,
@@ -331,6 +391,16 @@ def main():
             out = get_earnings()
         elif cmd == "payouts":
             out = get_payouts()
+        elif cmd == "hacktivity":
+            prog, lim, i = "", 10, 3
+            while i < len(sys.argv):
+                if sys.argv[i] == "--program" and i + 1 < len(sys.argv):
+                    prog = sys.argv[i + 1]; i += 2
+                elif sys.argv[i] == "--limit" and i + 1 < len(sys.argv):
+                    lim = int(sys.argv[i + 1]); i += 2
+                else:
+                    i += 1
+            out = search_hacktivity(keyword=arg or "", program=prog, limit=lim)
         else:
             print(f"Unknown command: {cmd}")
             sys.exit(1)

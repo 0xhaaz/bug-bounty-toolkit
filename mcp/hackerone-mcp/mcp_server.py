@@ -35,15 +35,19 @@ import h1_hacker_api as h1  # authenticated REST client  # noqa: E402
 mcp = FastMCP("hackerone")
 
 
-# ─── Public tools (no auth) ──────────────────────────────────────────────────
+# ─── Public tools (no auth): get_program_stats, get_program_policy ───────────
+# (search_disclosed_reports now uses the authenticated Hacktivity REST API —
+#  HackerOne removed the public GraphQL field it used to query.)
 
 @mcp.tool()
 def search_disclosed_reports(keyword: str = "", program: str = "", limit: int = 10) -> list:
-    """Search HackerOne Hacktivity for publicly disclosed reports.
+    """Search HackerOne Hacktivity for publicly disclosed reports (requires API creds).
 
-    keyword: search term (vuln type, tech). program: H1 handle. limit: 1-25.
+    keyword: freetext search (vuln type, tech), matched server-side.
+    program: H1 handle — filtered client-side (best-effort for rare disclosers).
+    limit: 1-25. Results include severity, awarded amount, CWE, and CVE ids.
     """
-    return public.search_disclosed_reports(keyword=keyword, program=program, limit=limit)
+    return h1.search_hacktivity(keyword=keyword, program=program, limit=limit)
 
 
 @mcp.tool()

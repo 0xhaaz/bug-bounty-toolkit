@@ -89,74 +89,20 @@ def search_disclosed_reports(
 ) -> list[dict]:
     """Search HackerOne Hacktivity for disclosed reports.
 
+    Delegates to the authenticated Hacktivity REST API. HackerOne removed the
+    public GraphQL `hacktivity_items` root field this originally queried, so this
+    now requires API credentials (see h1_hacker_api.load_creds).
+
     Args:
-        keyword: Search term (vuln type, tech, etc.)
-        program: HackerOne program handle (e.g. "shopify")
-        limit: Max results (1-25)
+        keyword: Search term (vuln type, tech, etc.), matched server-side.
+        program: HackerOne program handle (e.g. "shopify"), filtered client-side.
+        limit: Max results (1-25).
 
     Returns:
         List of disclosed report summaries.
     """
-    limit = max(1, min(25, limit))
-
-    where_clauses = ['disclosed_at: { _is_null: false }']
-    if keyword:
-        safe_keyword = keyword.replace('"', '\\"')
-        where_clauses.append(
-            f'report: {{ title: {{ _icontains: "{safe_keyword}" }} }}'
-        )
-    if program:
-        safe_program = program.replace('"', '\\"')
-        where_clauses.append(
-            f'team: {{ handle: {{ _eq: "{safe_program}" }} }}'
-        )
-
-    where = ", ".join(where_clauses)
-
-    query = f"""{{
-      hacktivity_items(
-        first: {limit},
-        order_by: {{ field: popular, direction: DESC }},
-        where: {{ {where} }}
-      ) {{
-        nodes {{
-          ... on HacktivityDocument {{
-            report {{
-              title
-              severity_rating
-              disclosed_at
-              url
-              substate
-            }}
-            team {{
-              handle
-              name
-            }}
-          }}
-        }}
-      }}
-    }}"""
-
-    data = _graphql_request(query)
-    nodes = (data.get("data") or {}).get("hacktivity_items", {}).get("nodes", [])
-
-    results = []
-    for node in nodes:
-        report = node.get("report")
-        if not report:
-            continue
-        team = node.get("team") or {}
-        results.append({
-            "title": report.get("title", ""),
-            "severity": (report.get("severity_rating") or "unknown").upper(),
-            "disclosed_at": (report.get("disclosed_at") or "")[:10],
-            "url": report.get("url", ""),
-            "state": report.get("substate", ""),
-            "program": team.get("handle", ""),
-            "program_name": team.get("name", ""),
-        })
-
-    return results
+    from h1_hacker_api import search_hacktivity
+    return search_hacktivity(keyword=keyword, program=program, limit=limit)
 
 
 # ─── Tool: get_program_stats ────────────────────────────────────────────────
@@ -177,11 +123,8 @@ def get_program_stats(program: str) -> dict:
         handle
         url
         offers_bounties
-        default_currency
         base_bounty
         resolved_report_count
-        average_time_to_bounty_awarded
-        average_time_to_first_program_response
         launched_at
         state
       }}
@@ -197,11 +140,8 @@ def get_program_stats(program: str) -> dict:
         "name": team.get("name", ""),
         "url": team.get("url", ""),
         "offers_bounties": team.get("offers_bounties", False),
-        "currency": team.get("default_currency", "USD"),
         "base_bounty": team.get("base_bounty"),
         "resolved_reports": team.get("resolved_report_count"),
-        "avg_days_to_bounty": team.get("average_time_to_bounty_awarded"),
-        "avg_days_to_first_response": team.get("average_time_to_first_program_response"),
         "launched_at": (team.get("launched_at") or "")[:10],
         "state": team.get("state", ""),
     }

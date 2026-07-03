@@ -124,6 +124,7 @@ def get_program_stats(program: str) -> dict:
         url
         offers_bounties
         base_bounty
+        average_bounty_lower_amount
         resolved_report_count
         launched_at
         state
@@ -141,6 +142,7 @@ def get_program_stats(program: str) -> dict:
         "url": team.get("url", ""),
         "offers_bounties": team.get("offers_bounties", False),
         "base_bounty": team.get("base_bounty"),
+        "average_bounty": team.get("average_bounty_lower_amount"),
         "resolved_reports": team.get("resolved_report_count"),
         "launched_at": (team.get("launched_at") or "")[:10],
         "state": team.get("state", ""),

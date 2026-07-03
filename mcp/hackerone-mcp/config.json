@@ -2,9 +2,9 @@
   "mcpServers": {
     "hackerone": {
       "command": "python3",
-      "args": ["mcp/hackerone-mcp/server.py"],
+      "args": ["mcp/hackerone-mcp/mcp_server.py"],
       "env": {}
     }
   },
-  "_comment": "Public endpoints only — no API key required. Copy into .claude/settings.json mcpServers section."
+  "_comment": "Copy the 'hackerone' entry into your .claude/settings.json mcpServers section. Public tools need no creds. Authenticated tools read API creds from env (H1_API_USERNAME/H1_API_TOKEN) or ~/.hackerone/creds.json — never put secrets in this file (it is a committed template). To enable the gated submit_report tool, add \"env\": { \"H1_ENABLE_SUBMIT\": \"1\" }."
 }

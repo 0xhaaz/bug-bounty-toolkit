@@ -3,7 +3,7 @@
   "mcp": {
     "hackerone": {
       "type": "local",
-      "command": ["python3", "mcp/hackerone-mcp/server.py"],
+      "command": ["python3", "mcp/hackerone-mcp/mcp_server.py"],
       "enabled": true
     }
   }
